@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026 통합 수능 & 내신 찍맞 시뮬레이션 시스템 (종합 완성본)</title>
+    <style>
+        :root {
+            --omr-bg: #faf9f3;
+            --omr-red: #cc3333;
+            --omr-text: #1a1a1a;
+            --exam-bg: #ffffff;
+            --border-color: #2b2b2b;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+            background-color: #cfd4da;
+            margin: 0;
+            padding: 20px;
+            color: var(--omr-text);
+        }
+
+        .main-wrapper { max-width: 1400px; margin: 0 auto; }
+
+        .top-control-bar {
+            background: #1e293b; color: #fff; padding: 14px 20px;
+            border-radius: 8px; margin-bottom: 20px;
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .mode-selector-zone {
+            display: flex; gap: 10px; background: #334155; padding: 6px; border-radius: 6px;
+        }
+
+        .mode-tab {
+            padding: 8px 14px; color: #cbd5e1; cursor: pointer; border-radius: 4px; font-weight: bold; font-size: 13px;
+        }
+        .mode-tab.active {
+            background: var(--omr-red); color: white;
+        }
+
+        .btn-action {
+            background: #2563eb; color: white; border: none;
+            padding: 10px 18px; font-size: 14px; font-weight: bold;
+            cursor: pointer; border-radius: 4px; margin-left: 8px;
+            transition: background 0.2s;
+        }
+        .btn-action:hover { background: #1d4ed8; }
+        .btn-submit { background-color: #0f172a; }
+        .btn-submit:hover { background-color: #000; }
+
+        .workspace { display: flex; gap: 25px; align-items: flex-start; }
+
+        /* 시험지 영역 */
+        .exam-paper {
+            background: var(--exam-bg); border: 1px solid #94a3b8;
+            padding: 35px; flex: 65; min-width: 650px;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+        }
+
+        .exam-header {
+            border: 2px solid var(--border-color); padding: 15px;
+            text-align: center; margin-bottom: 25px; position: relative;
+        }
+        .exam-year { font-size: 18px; font-weight: bold; letter-spacing: 2px; }
+        .exam-title { font-size: 30px; font-weight: 900; margin: 8px 0; letter-spacing: 4px; }
+        
+        .exam-meta-table { width: 100%; }
+        .exam-meta-table td { font-size: 14px; }
+        .exam-input-field {
+            border: none; border-bottom: 1px dashed #000; width: 90%;
+            font-size: 15px; font-weight: bold; text-align: center;
+            outline: none; background: transparent;
+        }
+        .exam-type-box {
+            position: absolute; right: 20px; top: 20px;
+            border: 2px solid var(--border-color); padding: 6px 12px;
+            font-weight: bold; font-size: 16px; background: #fff;
+        }
+
+        .exam-instructions {
+            border: 1px solid #64748b; padding: 12px; margin-bottom: 25px;
+            font-size: 13px; line-height: 1.6; background: #f8fafc;
+        }
+        .instruction-highlight {
+            color: #b91c1c; font-weight: bold; font-style: italic;
+            border-left: 3px solid var(--omr-red); padding-left: 8px; margin: 5px 0;
+        }
+
+        /* 실시간 통계/안내 분석 보드 */
+        .live-analysis-panel {
+            background: #f1f5f9; border: 1px solid #cbd5e1;
+            padding: 12px; margin-bottom: 12px; border-radius: 6px;
+            font-size: 13px; line-height: 1.5;
+        }
+        .badge-info {
+            background: #475569; color: white; padding: 2px 6px;
+            border-radius: 4px; font-weight: bold; font-size: 11px; margin-right: 5px;
+        }
+        .badge-warn {
+            background: #ef4444; color: white; padding: 2px 6px;
+            border-radius: 4px; font-weight: bold; font-size: 11px; margin-right: 5px;
+        }
+
+        /* 📢 공지사항 디자인 추가 */
+        .notice-panel {
+            background: #fffbeb; border: 1px solid #fef3c7;
+            padding: 14px 18px; margin-bottom: 20px; border-radius: 6px;
+            font-size: 13.5px; line-height: 1.6; color: #78350f;
+            display: flex; align-items: flex-start; gap: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .notice-icon { font-size: 16px; margin-top: 1px; }
+        .notice-text strong { color: #b45309; }
+
+        /* 문제 레이아웃 */
+        .problem-columns { display: flex; border-top: 1px solid var(--border-color); margin-top: 15px; }
+        .problem-column { flex: 1; padding: 20px 15px; }
+        .problem-column:first-child { border-right: 1px solid var(--border-color); }
+        .problem-item { margin-bottom: 30px; font-size: 14px; line-height: 1.6; }
+        .problem-num { font-weight: bold; font-size: 15px; margin-right: 4px; }
+        .problem-options { margin-top: 6px; list-style: none; padding-left: 5px; }
+        .problem-options li { margin-bottom: 4px; }
+        .option-circle {
+            display: inline-block; width: 18px; height: 18px; border: 1px solid var(--omr-text);
+            border-radius: 50%; text-align: center; line-height: 16px; font-size: 11px; margin-right: 6px;
+        }
+
+        /* OMR 카드 */
+        .omr-container { flex: 35; min-width: 440px; }
+        .omr-card { background-color: var(--omr-bg); border: 3px double var(--omr-red); padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
+        .omr-card-header { border: 2px solid var(--omr-red); color: var(--omr-red); padding: 8px; text-align: center; font-size: 22px; font-weight: bold; letter-spacing: 6px; margin-bottom: 12px; background: #fff; }
+        
+        .omr-toggle-container {
+            display: flex; margin-bottom: 10px; border: 1px solid var(--omr-red); background: #fff;
+        }
+        .omr-mode-btn {
+            flex: 1; text-align: center; padding: 6px; font-size: 12px; font-weight: bold; cursor: pointer; color: var(--omr-red);
+        }
+        .omr-mode-btn.active {
+            background: var(--omr-red); color: #fff;
+        }
+
+        .omr-subject-label { border: 1px solid var(--omr-red); background: #fff; padding: 8px; font-size: 13px; font-weight: bold; margin-bottom: 12px; text-align: center; }
+        .omr-scroll-area { max-height: 700px; overflow-y: auto; border: 1px solid var(--omr-red); background: #fff; }
+        
+        .omr-table { width: 100%; border-collapse: collapse; }
+        .omr-table th, .omr-table td { border: 1px solid #f0d0d0; padding: 5px 4px; text-align: center; vertical-align: middle; position: relative; }
+        .omr-table th { background: #ffebeb; color: var(--omr-red); font-size: 12px; position: sticky; top: 0; z-index: 5; border-bottom: 2px solid var(--omr-red); }
+        .omr-qnum { font-weight: bold; color: var(--omr-red); font-size: 13px; width: 50px; }
+        
+        .omr-bubble { width: 22px; height: 17px; border: 1px solid var(--omr-red); border-radius: 40%; display: inline-block; font-size: 11px; font-weight: bold; color: var(--omr-red); line-height: 15px; cursor: pointer; user-select: none; background: #fff; margin: 0 2px; }
+        .omr-bubble.marked { background: #111 !important; border-color: #111 !important; color: #111 !important; }
+        .omr-bubble.base-marked { background: #b91c1c !important; border-color: #b91c1c !important; color: #fff !important; }
+        .omr-short-input { width: 60px; text-align: center; border: 1px solid var(--omr-red); font-weight: bold; font-size: 13px; padding: 2px; }
+
+        /* 채점 기호 피드백 */
+        .mark-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        .mark-circle { display: none; position: absolute; top: 1px; left: 8px; width: 30px; height: 30px; border: 4px solid #2563eb; border-radius: 50%; opacity: 0.6; }
+        .mark-line { display: none; position: absolute; top: 1px; left: 20px; width: 4px; height: 30px; background: var(--omr-red); transform: rotate(35deg); opacity: 0.6; }
+        .correct .mark-circle { display: block; }
+        .wrong .mark-line { display: block; }
+        .omr-bubble.actual-answer-reveal { background: #fee2e2 !important; border: 2px solid var(--omr-red) !important; color: var(--omr-red) !important; }
+
+        /* 성적표 및 에세이 구역 */
+        .report-card { background: #fff; border: 2px solid #1e293b; padding: 20px; margin-top: 20px; display: none; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .report-title { text-align: center; font-size: 22px; font-weight: bold; text-decoration: underline; margin-bottom: 15px; letter-spacing: 2px; }
+        .report-table { width: 100%; border-collapse: collapse; text-align: center; margin-bottom: 20px; }
+        .report-table th, .report-table td { border: 1px solid #334155; padding: 10px; }
+
+        .essay-section {
+            background-color: #f8fafc; border-top: 2px dashed #cbd5e1; padding-top: 20px; margin-top: 15px;
+        }
+        .essay-title { font-size: 16px; font-weight: bold; color: #1e293b; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+        .essay-content { font-size: 13.5px; line-height: 1.7; color: #334155; text-align: justify; white-space: pre-line; }
+    </style>
+</head>
+<body>
+
+<div class="main-wrapper">
+    <div class="top-control-bar">
+        <div class="mode-selector-zone">
+            <div class="mode-tab active" id="tabSuneung" onclick="switchSystemMode('suneung')">📋 수능/모의고사 모드</div>
+            <div class="mode-tab" id="tabNaeshin" onclick="switchSystemMode('naeshin')">🏫 내신 기출 변형 모드</div>
+        </div>
+        <div>
+            <span id="subjectSelectWrapper">
+                <select id="mainSubjectSelect" style="padding: 8px; font-weight: bold; border-radius: 4px;" onchange="changeSuneungSubject()">
+                    <option value="korean">국어 영역 (45문항)</option>
+                    <option value="math">수학 영역 (30문항)</option>
+                    <option value="english">영어 영역 (45문항)</option>
+                </select>
+            </span>
+            <button class="btn-action" onclick="generateExamGame()">🎲 모의고사 출제 및 시험지 연동</button>
+            <button class="btn-action btn-submit" onclick="submitOMR()">✒️ OMR 카드 채점 및 등급 확인</button>
+        </div>
+    </div>
+
+    <div class="live-analysis-panel">
+        <span class="badge-info" id="systemModeBadge">수능 모드 작동중</span>
+        <span id="statSummaryText">출제 버튼을 누르면 기출 분포 데이터 세팅이 시작됩니다.</span>
+        <div id="statWarnings" style="margin-top: 5px;"></div>
+    </div>
+
+    <!-- 📢 요청하신 공지사항 영역 배치 완료 -->
+    <div class="notice-panel">
+        <div class="notice-icon">📢</div>
+        <div class="notice-text">
+            실제 시험을 연습하기 전, 모의 시험지를 푼 후 남은 문제를 어떻게 찍을지에 대한 <strong>사고과정을 체화하도록 도와주는 프로그램</strong>입니다. 만점에 가까워지는 그 날까지, 최선을 다해 수험생을 돕겠습니다.
+        </div>
+    </div>
+
+    <div class="workspace">
+        <div style="flex: 65; display: flex; flex-direction: column; gap: 20px;">
+            <div class="exam-paper">
+                <div class="exam-header">
+                    <div class="exam-year" id="paperYearTitle">2026학년도 대학수학능력시험 문제지</div>
+                    <div class="exam-title"><span id="renderSubject">국어</span> 영역</div>
+                    <div class="exam-type-box" id="paperTypeBox">홀수형</div>
+                    <div class="exam-meta">
+                        <table class="exam-meta-table">
+                            <tr>
+                                <td style="width: 80px; font-weight: bold;">수험번호 :</td>
+                                <td style="width: 200px;"><input type="text" class="exam-input-field" placeholder="수험번호 입력"></td>
+                                <td style="width: 60px; font-weight: bold; text-align: right;">성명 :</td>
+                                <td><input type="text" class="exam-input-field" placeholder="성명 입력"></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="exam-instructions">
+                    ○ <span id="instructionContext">한국교육과정평가원 수능 문항 표준 매트릭스를 따릅니다.</span><br>
+                    <div class="instruction-highlight">✨ "흔들리지 않고 피는 꽃이 어디 있으랴, 너의 찬란한 내일을 온 마음으로 응원한다."</div>
+                    ○ 답안지의 필적 확인란 문구: <strong>"너무 맑고 초롱한 그 중 하나 별이여"</strong>
+                </div>
+
+                <div class="problem-columns" id="problemColumnsArea">
+                    <div style="text-align: center; color: #64748b; width: 100%; padding: 60px 0;">
+                        상단의 [모의고사 출제 및 시험지 연동] 버튼을 클릭하시면 실전 시험 문항 배치가 활성화됩니다.
+                    </div>
+                </div>
+            </div>
+            
+            <div class="report-card" id="reportCardArea">
+                <div class="report-title">성 적 통 지 표</div>
+                <table class="report-table">
+                    <thead>
+                        <tr style="background: #f1f5f9;">
+                            <th>선택 분류</th>
+                            <th>총 문항 수</th>
+                            <th>찍맞/정답 개수</th>
+                            <th>정답률 (%)</th>
+                            <th>최종 판정</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td id="repSubject" style="font-weight: bold;">-</td>
+                            <td id="repTotalQ">-</td>
+                            <td id="repCorrectCount" style="font-weight: bold; color: #2563eb; font-size: 16px;">-</td>
+                            <td id="repRatio" style="font-weight: bold; font-size: 16px;">-</td>
+                            <td id="repGrade" style="font-weight: bold; color: var(--omr-red); font-size: 14px;">-</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="essay-section">
+                    <div class="essay-title">📝 통계 기반 실전 찍기 분석 리포트 에세이</div>
+                    <div class="essay-content" id="essayContentArea">OMR 채점 완료 시 마킹 데이터를 역추적하여 데이터북 연계 정밀 분석 에세이가 활성화됩니다.</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="omr-container">
+            <div class="omr-card">
+                <div class="omr-card-header">답 안 카 드 (OMR)</div>
+                
+                <div class="omr-toggle-container" id="omrInputToggleZone" style="display: none;">
+                    <div class="omr-mode-btn" id="btnModeUser" onclick="setOMRInputTarget('user')">✍️ 내 학생 답안 마킹</div>
+                    <div class="omr-mode-btn active" id="btnModeBase" onclick="setOMRInputTarget('base')">🔑 학교 기출 정답 입력</div>
+                </div>
+
+                <div class="omr-subject-label">
+                    선택과목: <span id="omrSubjectName" style="color: var(--omr-red);">국어 (45문항)</span>
+                </div>
+
+                <div class="omr-scroll-area">
+                    <table class="omr-table">
+                        <thead>
+                            <tr>
+                                <th>번호</th>
+                                <th>선 택 형 답 안 란</th>
+                            </tr>
+                        </thead>
+                        <tbody id="omrTbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentMode = "suneung"; // suneung | naeshin
+    let activeSubjectKey = "korean";
+    let activeSubjectName = "국어";
+    let currentMaxQuestions = 45;
+    
+    let omrActiveTarget = "user"; // user (학생 마킹) | base (기출 정답 설정)
+
+    // 내부 정답 홀더 변수
+    let pastAnswersData = [];   // 기출 통계/입력 정답 데이터베이스
+    let targetGameAnswers = []; // 현재 출제된 시험용 정답지 (채점 기준쌍)
+    let userMarkings = [];      // 사용자가 마킹한 정답 데이터
+
+    window.onload = function() {
+        initSuneungData('korean');
+        omrActiveTarget = "user"; // 수능 모드는 상시 유저 마킹 타겟
+        buildOMRCardSheet();
+    };
+
+    function switchSystemMode(mode) {
+        currentMode = mode;
+        document.getElementById('tabSuneung').classList.remove('active');
+        document.getElementById('tabNaeshin').classList.remove('active');
+        
+        const subSelect = document.getElementById('subjectSelectWrapper');
+        const toggleZone = document.getElementById('omrInputToggleZone');
+        const badge = document.getElementById('systemModeBadge');
+
+        if(mode === 'suneung') {
+            document.getElementById('tabSuneung').classList.add('active');
+            subSelect.style.display = 'inline';
+            toggleZone.style.display = 'none';
+            badge.innerText = "수능 모드 작동중";
+            badge.style.backgroundColor = "#475569";
+            
+            document.getElementById('paperYearTitle').innerText = "2026학년도 대학수학능력시험 문제지";
+            document.getElementById('paperTypeBox').style.display = "block";
+            document.getElementById('instructionContext').innerText = "한국교육과정평가원 수능 문항 표준 매트릭스를 따릅니다.";
+            
+            omrActiveTarget = "user";
+            changeSuneungSubject();
+        } else {
+            document.getElementById('tabSuneung').classList.remove('active');
+            document.getElementById('tabNaeshin').classList.add('active');
+            subSelect.style.display = 'none';
+            toggleZone.style.display = 'flex';
+            badge.innerText = "내신 기출 모드 (최대 50문항 자유 설계)";
+            badge.style.backgroundColor = "#b91c1c";
+            
+            document.getElementById('paperYearTitle').innerText = "2026학년도 2학기 중간고사 기출지";
+            document.getElementById('paperTypeBox').style.display = "none";
+            document.getElementById('instructionContext').innerText = "학교별 내신 시험입니다. 오른쪽 OMR의 [학교 기출 정답 입력] 탭을 눌러 정답을 먼저 입력하세요.";
+            
+            activeSubjectName = "내신 과목";
+            document.getElementById('renderSubject').innerText = activeSubjectName;
+            document.getElementById('omrSubjectName').innerText = "학교 내신 시험지";
+            
+            currentMaxQuestions = 50;
+            pastAnswersData = Array.from({length: 50}, () => []);
+            userMarkings = Array.from({length: 50}, () => []);
+            targetGameAnswers = []; // 출제 상태 초기화
+            
+            setOMRInputTarget('base'); // 내신 모드로 진입하면 기출 정답 입력부터 대기
+            buildOMRCardSheet();
+            
+            document.getElementById('problemColumnsArea').innerHTML = `
+                <div style="text-align: center; color: #b91c1c; width: 100%; padding: 40px 0; font-weight: bold;">
+                    [내신 모드 작동 안내]<br>
+                    1. 오른쪽 OMR 카드에서 [학교 기출 정답 입력] 버튼이 켜진 것을 확인합니다.<br>
+                    2. 학교 기출문제 정답을 1번부터 순서대로 마킹해 보세요.<br>
+                    3. 마킹을 완료한 가장 마지막 번호가 시험지의 총 문제 수로 자동 지정됩니다.<br>
+                    4. 완료 후 [모의고사 출제 및 시험지 연동] 버튼을 누르면 시험지가 자동 빌드되며,<br>
+                    그와 동시에 [내 학생 답안 마킹] 모드로 자동 변경되어 빈 OMR 카드로 시험을 치룰 수 있습니다!
+                </div>`;
+        }
+    }
+
+    function setOMRInputTarget(target) {
+        omrActiveTarget = target;
+        document.getElementById('btnModeUser').classList.remove('active');
+        document.getElementById('btnModeBase').classList.remove('active');
+        
+        if(target === 'user') {
+            document.getElementById('btnModeUser').classList.add('active');
+            document.getElementById('statSummaryText').innerText = "학생 답안 마킹 모드: 실전이라 생각하고 빈 OMR 칸에 정답을 마킹하세요.";
+        } else {
+            document.getElementById('btnModeBase').classList.add('active');
+            document.getElementById('statSummaryText').innerText = "학교 정답지 등록 중: 기출 정답에 해당하는 번호를 마킹하여 마스터 키를 생성하세요.";
+        }
+        refreshOMRVisualStates();
+    }
+
+    function initSuneungData(subject) {
+        activeSubjectKey = subject;
+        pastAnswersData = [];
+        targetGameAnswers = []; // 초기에는 출제 정답 없음
+        
+        if (subject === 'korean') {
+            activeSubjectName = "국어"; currentMaxQuestions = 45;
+            let basePool = [1,1,1,1,1, 2,2,2,2,2, 3,3,3,3,3, 4,4,4,4,4, 5,5,5,5,5];
+            let remainPool = [1,1,1,1, 2,2,2,2, 3,3,3,3, 4,4,4,4, 5,5,5,5];
+            let combined = basePool.concat(remainPool);
+            shuffleArray(combined);
+            for(let i=0; i<45; i++) pastAnswersData.push([combined[i]]);
+        } else if (subject === 'math') {
+            activeSubjectName = "수학"; currentMaxQuestions = 30;
+            let choices = [1,1,1,1, 2,2,2,2, 3,3,3,3, 4,4,4,4, 5,5,5,5,5];
+            shuffleArray(choices);
+            for(let i=0; i<21; i++) pastAnswersData.push([choices[i]]);
+            for(let i=21; i<30; i++) {
+                pastAnswersData.push(String(Math.floor(Math.random() * 80) + 15));
+            }
+        } else if (subject === 'english') {
+            activeSubjectName = "영어"; currentMaxQuestions = 45;
+            let basePool = [1,1,1,1,1, 2,2,2,2,2, 3,3,3,3,3, 4,4,4,4,4, 5,5,5,5,5];
+            let remainPool = [1,1,1,1, 2,2,2,2, 3,3,3,3, 4,4,4,4, 5,5,5,5];
+            let combined = basePool.concat(remainPool);
+            shuffleArray(combined);
+            for(let i=0; i<45; i++) pastAnswersData.push([combined[i]]);
+        }
+        userMarkings = Array.from({length: currentMaxQuestions}, () => (subject==='math')?"":[]);
+    }
+
+    function changeSuneungSubject() {
+        const sub = document.getElementById('mainSubjectSelect').value;
+        initSuneungData(sub);
+        document.getElementById('renderSubject').innerText = activeSubjectName;
+        document.getElementById('omrSubjectName').innerText = `${activeSubjectName} (${currentMaxQuestions}문항)`;
+        buildOMRCardSheet();
+        document.getElementById('statSummaryText').innerText = "과목이 연동되었습니다. 출제하기 버튼을 클릭하시면 OMR 카드가 깨끗하게 준비됩니다.";
+        document.getElementById('statWarnings').innerHTML = "";
+        
+        document.getElementById('problemColumnsArea').innerHTML = `
+            <div style="text-align: center; color: #64748b; width: 100%; padding: 60px 0;">
+                상단의 [모의고사 출제 및 시험지 연동] 버튼을 클릭하시면 실전 시험 문항 배치가 활성화됩니다.
+            </div>`;
+    }
+
+    function buildOMRCardSheet() {
+        const tbody = document.getElementById('omrTbody');
+        tbody.innerHTML = '';
+
+        for(let i=1; i<=currentMaxQuestions; i++) {
+            const tr = document.createElement('tr');
+            tr.id = `omr-row-q-${i}`;
+            
+            const tdNum = document.createElement('td');
+            tdNum.className = 'omr-qnum';
+            tdNum.innerHTML = `${i}<div class="mark-container"><div class="mark-circle"></div><div class="mark-line"></div></div>`;
+            tr.appendChild(tdNum);
+
+            const tdBubbles = document.createElement('td');
+            if (currentMode === 'suneung' && activeSubjectKey === 'math' && i >= 22) {
+                tdBubbles.innerHTML = `<input type="text" class="omr-short-input" id="short-input-${i}" placeholder="답안" oninput="handleShortInput(${i-1}, this.value)">`;
+            } else {
+                for(let b=1; b<=5; b++) {
+                    const bubble = document.createElement('div');
+                    bubble.className = 'omr-bubble';
+                    bubble.id = `bubble-${i}-${b}`;
+                    bubble.innerText = b;
+                    bubble.onclick = function() { handleBubbleClick(i-1, b, this); };
+                    tdBubbles.appendChild(bubble);
+                }
+            }
+            tr.appendChild(tdBubbles);
+            tbody.appendChild(tr);
+        }
+        refreshOMRVisualStates();
+    }
+
+    function handleBubbleClick(qidx, val, element) {
+        if (currentMode === 'naeshin' && omrActiveTarget === 'base') {
+            if (!Array.isArray(pastAnswersData[qidx])) pastAnswersData[qidx] = [];
+            
+            if (pastAnswersData[qidx].includes(val)) {
+                pastAnswersData[qidx] = pastAnswersData[qidx].filter(v => v !== val);
+            } else {
+                pastAnswersData[qidx].push(val);
+            }
+            refreshOMRVisualStates();
+            scanNaeshinMaxQuestions();
+            return;
+        }
+
+        if (!Array.isArray(userMarkings[qidx])) userMarkings[qidx] = [];
+        
+        let allowedCount = 1;
+        if (currentMode === 'suneung' && targetGameAnswers[qidx]) {
+            allowedCount = targetGameAnswers[qidx].length;
+        }
+
+        if (element.classList.contains('marked')) {
+            element.classList.remove('marked');
+            userMarkings[qidx] = userMarkings[qidx].filter(v => v !== val);
+        } else {
+            if (allowedCount === 1) {
+                for(let b=1; b<=5; b++) {
+                    const el = document.getElementById(`bubble-${qidx+1}-${b}`);
+                    if(el) el.classList.remove('marked');
+                }
+                userMarkings[qidx] = [val];
+                element.classList.add('marked');
+            } else {
+                userMarkings[qidx].push(val);
+                element.classList.add('marked');
+            }
+        }
+        if(currentMode === 'suneung') runSuneungAnalysis();
+    }
+
+    function handleShortInput(qidx, value) {
+        userMarkings[qidx] = value.trim();
+    }
+
+    function scanNaeshinMaxQuestions() {
+        let lastAnsweredIndex = 0;
+        for(let i=0; i<50; i++) {
+            if(Array.isArray(pastAnswersData[i]) && pastAnswersData[i].length > 0) {
+                lastAnsweredIndex = i + 1;
+            }
+        }
+        if(lastAnsweredIndex > 0) {
+            document.getElementById('omrSubjectName').innerText = `내신 시험지 (현재 인식: ${lastAnsweredIndex}문항)`;
+        }
+    }
+
+    function refreshOMRVisualStates() {
+        for(let i=1; i<=currentMaxQuestions; i++) {
+            for(let b=1; b<=5; b++) {
+                const bubble = document.getElementById(`bubble-${i}-${b}`);
+                if(!bubble) continue;
+                
+                bubble.classList.remove('marked', 'base-marked');
+                
+                if (currentMode === 'naeshin' && omrActiveTarget === 'base') {
+                    if(Array.isArray(pastAnswersData[i-1]) && pastAnswersData[i-1].includes(b)) {
+                        bubble.classList.add('base-marked');
+                    }
+                } else {
+                    if(Array.isArray(userMarkings[i-1]) && userMarkings[i-1].includes(b)) {
+                        bubble.classList.add('marked');
+                    }
+                }
+            }
+        }
+    }
+
+    function runSuneungAnalysis() {
+        let counts = [0, 0, 0, 0, 0];
+        let seqCount = 1; let lastNum = -1; let tripleWarning = false;
+        let limitQ = (activeSubjectKey === 'math') ? 21 : currentMaxQuestions;
+        let criticalLimit = (activeSubjectKey === 'math') ? 6 : 11;
+
+        for(let i=0; i<limitQ; i++) {
+            let m = userMarkings[i];
+            if(Array.isArray(m) && m.length === 1) {
+                let num = m[0]; counts[num - 1]++;
+                if(num === lastNum) { seqCount++; if(seqCount >= 3) tripleWarning = true; } 
+                else { seqCount = 1; }
+                lastNum = num;
+            } else { seqCount = 1; lastNum = -1; }
+        }
+
+        document.getElementById('statSummaryText').innerText = `실시간 마킹 선지 -> ①번: ${counts[0]}개 | ②번: ${counts[1]}개 | ③번: ${counts[2]}개 | ④번: ${counts[3]}개 | ⑤번: ${counts[4]}개`;
+        let warnBox = document.getElementById('statWarnings'); warnBox.innerHTML = '';
+
+        if(tripleWarning) {
+            warnBox.innerHTML += `<div style="color:#b91c1c; font-weight:bold; margin-bottom:4px;"><span class="badge-warn">🚨 3연속 정답 경고</span> 3개 문항 연속 동일 선지 마킹 감지! 평가원 모의고사 역사상 극히 드문 패턴입니다.</div>`;
+        }
+
+        for(let idx=0; idx<5; idx++) {
+            if(counts[idx] >= criticalLimit) {
+                warnBox.innerHTML += `<div style="color:#e11d48; font-weight:bold;"><span class="badge-warn">🚨 선지 과밀 경고!</span> 현재 [${idx+1}번] 선지가 ${counts[idx]}개 마킹되었습니다. 평가원의 철저한 균등 분배 원칙(국어/영어 평균 9개, 수학 평균 4개)을 초과했습니다. 실수(오답)가 포함되어 있을 확률이 매우 높으니 재검토를 강력히 추천합니다!</div>`;
+            }
+        }
+    }
+
+    function generateExamGame() {
+        if(currentMode === 'naeshin') {
+            let lastAnsweredIndex = 0;
+            for(let i=0; i<50; i++) {
+                if(Array.isArray(pastAnswersData[i]) && pastAnswersData[i].length > 0) lastAnsweredIndex = i + 1;
+            }
+            if(lastAnsweredIndex === 0) {
+                alert("학교 기출 정답 입력 모드에서 최소 한 문제 이상 정답을 마킹해 주셔야 시험지가 연동됩니다.");
+                return;
+            }
+            currentMaxQuestions = lastAnsweredIndex;
+            
+            let countFreq = [0, 0, 0, 0, 0];
+            let total = 0;
+            for(let i=0; i<currentMaxQuestions; i++) {
+                if(Array.isArray(pastAnswersData[i])) {
+                    pastAnswersData[i].forEach(v => { countFreq[v-1]++; total++; });
+                }
+            }
+            let probs = countFreq.map(f => total > 0 ? (f / total) * 100 : 20);
+
+            targetGameAnswers = [];
+            for(let i=0; i<currentMaxQuestions; i++) {
+                let req = pastAnswersData[i] ? pastAnswersData[i].length : 1;
+                if(req === 0) req = 1;
+                let cAns = [];
+                while(cAns.length < req) {
+                    let p = getWeightedIndex(probs);
+                    if(!cAns.includes(p)) cAns.push(p);
+                }
+                targetGameAnswers.push(cAns.sort((a,b)=>a-b));
+            }
+            
+            userMarkings = Array.from({length: currentMaxQuestions}, () => []);
+            
+            setOMRInputTarget('user'); 
+            buildOMRCardSheet();
+            renderExamPaperHTML();
+            
+            document.getElementById('reportCardArea').style.display = 'none';
+            alert(`🏫 [내신 변형 시험 생성 완료] 총 ${currentMaxQuestions}문항이 출제되었습니다. 입력하신 학교 기출 분포를 바탕으로 랜덤 변형된 새로운 정답이 세팅되었습니다. 본인의 답을 마킹해 보세요!`);
+            return;
+        }
+
+        let countFreq = [0, 0, 0, 0, 0]; let total = 0;
+        let limitObj = (activeSubjectKey === 'math') ? 21 : currentMaxQuestions;
+        for(let i=0; i<limitObj; i++) {
+            if(Array.isArray(pastAnswersData[i])) {
+                pastAnswersData[i].forEach(v => { countFreq[v-1]++; total++; });
+            }
+        }
+        let probs = countFreq.map(f => total > 0 ? (f / total) * 100 : 20);
+
+        targetGameAnswers = [];
+        for(let i=0; i<currentMaxQuestions; i++) {
+            if(activeSubjectKey === 'math' && i >= 21) {
+                targetGameAnswers.push(pastAnswersData[i]);
+            } else {
+                let req = pastAnswersData[i] ? pastAnswersData[i].length : 1;
+                let cAns = [];
+                while(cAns.length < req) {
+                    let p = getWeightedIndex(probs);
+                    if(!cAns.includes(p)) cAns.push(p);
+                }
+                targetGameAnswers.push(cAns.sort((a,b)=>a-b));
+            }
+        }
+
+        userMarkings = Array.from({length: currentMaxQuestions}, () => (activeSubjectKey==='math')?"":[]);
+        buildOMRCardSheet();
+        renderExamPaperHTML();
+        document.getElementById('reportCardArea').style.display = 'none';
+        alert(`🎲 2026학년도 평가원 정답 통계 연동 [${currentMaxQuestions}문항] 출제 완료! 깨끗한 OMR 카드에 최선의 선택을 마킹하세요.`);
+    }
+
+    function getWeightedIndex(probs) {
+        const rand = Math.random() * 100; let sum = 0;
+        for(let i=0; i<probs.length; i++) {
+            sum += probs[i]; if(rand <= sum) return i + 1;
+        }
+        return 5;
+    }
+
+    function renderExamPaperHTML() {
+        const columnsArea = document.getElementById('problemColumnsArea');
+        columnsArea.innerHTML = '';
+        const leftCol = document.createElement('div'); leftCol.className = 'problem-column';
+        const rightCol = document.createElement('div'); rightCol.className = 'problem-column';
+
+        const textDatabase = {
+            korean: [
+                "고프의 독해 '단순 관점' 이론에 따른 해독 능력 요소로 알맞은 것은?",
+                "윗글의 언어 이해 발달 관점에서 중심 내용을 추론한 내용으로 알맞은 것은?",
+                "식혜 소식지 제작 담화 중 다겸과 혜정의 말하기 방식으로 옳은 것은?",
+                "전통 음료 항목과 전통 간식 항목의 연결 도식을 바탕으로 한 분석은?",
+                "단어 인식을 못하는 피험자의 구어 의사소통 발달 메커니즘으로 알맞은 것은?"
+            ],
+            math: [
+                "값 9^(1/4) × 3^(-1/2)의 연산 결과를 올바르게 구하시오.",
+                "함수 f(x)가 실수 전체의 집합에서 연속이 되기 위한 상수 a의 조건은?",
+                "수열 a_n에 대하여 시그마 연산 규칙을 이용하여 변수를 추론하시오.",
+                "곡선 y = x^2과 직선의 교점을 통한 정적분 성적 영역을 구하시오.",
+                "두 초점이 F, F'인 쌍곡선 위의 접선 방정식과 벡터성분의 합을 연산하시오."
+            ],
+            english: [
+                "According to the Mia's story, which one is true about the reading club?",
+                "What is the main reason why Mia reluctantly agreed to Sam's suggestion?",
+                "Choose the main cause why the woman cannot attend 'Morning Tea Club'.",
+                "Which option matches the context of 'Café Paris' recommended by librarian?",
+                "Fill in the blank with the most appropriate context about phone usages."
+            ],
+            naeshin: [
+                "다음 중 학교 수업 교과 지문 내용의 정합성을 분석한 내용으로 가장 적절한 것은?",
+                "다음 기출 인쇄물 유인물 중 밑줄 친 부분의 지칭 대상이 나머지 넷과 다른 것은?",
+                "조건을 만족하는 복잡한 수치식의 상수를 구하고 풀이 과정을 논리적으로 서술하시오."
+            ]
+        };
+
+        const activePool = textDatabase[currentMode === 'naeshin' ? 'naeshin' : activeSubjectKey];
+        const half = Math.ceil(currentMaxQuestions / 2);
+
+        let optionsText = [];
+        if (currentMode === 'suneung' && activeSubjectKey === 'english') {
+            optionsText = ["CSAT", "GPA Exam", "Lucky Guess", "Success", "Best Wishes"];
+        } else {
+            optionsText = ["수능", "내신", "찍맞", "성공", "기원"];
+        }
+
+        for(let i=1; i<=currentMaxQuestions; i++) {
+            const questionText = activePool[(i - 1) % activePool.length];
+            const item = document.createElement('div');
+            item.className = 'problem-item';
+
+            if(currentMode === 'suneung' && activeSubjectKey === 'math' && i >= 22) {
+                item.innerHTML = `<div><span class="problem-num">${i}.</span> ${questionText} [주관식 4점]</div>`;
+            } else {
+                item.innerHTML = `<div><span class="problem-num">${i}.</span> ${questionText} [배점 차등형]</div>
+                    <ul class="problem-options">
+                        <li><span class="option-circle">1</span> ${optionsText[0]}</li>
+                        <li><span class="option-circle">2</span> ${optionsText[1]}</li>
+                        <li><span class="option-circle">3</span> ${optionsText[2]}</li>
+                        <li><span class="option-circle">4</span> ${optionsText[3]}</li>
+                        <li><span class="option-circle">5</span> ${optionsText[4]}</li>
+                    </ul>`;
+            }
+            if(i <= half) leftCol.appendChild(item); else rightCol.appendChild(item);
+        }
+        columnsArea.appendChild(leftCol);
+        columnsArea.appendChild(rightCol);
+    }
+
+    function submitOMR() {
+        if(targetGameAnswers.length === 0) { alert("먼저 상단의 [모의고사 출제 및 시험지 연동] 버튼을 눌러주셔야 채점 시스템이 활성화됩니다."); return; }
+        let correctCount = 0;
+
+        for(let i=1; i<=currentMaxQuestions; i++) {
+            const rowEl = document.getElementById(`omr-row-q-${i}`);
+            if(!rowEl) continue;
+            
+            rowEl.classList.remove('correct', 'wrong');
+            let isCorrect = false;
+
+            if(currentMode === 'suneung' && activeSubjectKey === 'math' && i >= 22) {
+                let uVal = typeof userMarkings[i-1] === 'string' ? userMarkings[i-1].trim() : "";
+                let tVal = String(targetGameAnswers[i-1]).trim();
+                if(uVal !== "" && uVal === tVal) isCorrect = true;
+            } else {
+                let uAns = Array.isArray(userMarkings[i-1]) ? userMarkings[i-1].sort((a,b)=>a-b).join(',') : "";
+                let tAns = Array.isArray(targetGameAnswers[i-1]) ? targetGameAnswers[i-1].sort((a,b)=>a-b).join(',') : "";
+                if(uAns !== "" && uAns === tAns) isCorrect = true;
+            }
+
+            if(isCorrect) { correctCount++; rowEl.classList.add('correct'); } 
+            else { rowEl.classList.add('wrong'); }
+
+            if(!(currentMode === 'suneung' && activeSubjectKey === 'math' && i >= 22)) {
+                let tAnsArr = targetGameAnswers[i-1] || [];
+                for(let b=1; b<=5; b++) {
+                    const bEl = document.getElementById(`bubble-${i}-${b}`);
+                    if(bEl) {
+                        bEl.classList.remove('actual-answer-reveal');
+                        if(tAnsArr.includes(b)) bEl.classList.add('actual-answer-reveal');
+                    }
+                }
+            }
+        }
+
+        document.getElementById('repSubject').innerText = (currentMode === 'suneung') ? `수능 [${activeSubjectName}]` : "학교 내신 기출";
+        document.getElementById('repTotalQ').innerText = `${currentMaxQuestions}문항`;
+        document.getElementById('repCorrectCount').innerText = `${correctCount} 개`;
+        
+        const ratio = (correctCount / currentMaxQuestions) * 100;
+        document.getElementById('repRatio').innerText = `${ratio.toFixed(1)} %`;
+
+        let gradeResult = "훈련 요망";
+        if(ratio >= 90) gradeResult = "대성공 👑 최상위권 달성";
+        else if(ratio >= 75) gradeResult = "상위권 🥈 안정적인 점수대 진입";
+        else if(ratio >= 50) gradeResult = "중위권 📈 통계 오차범위 내 안착";
+        else gradeResult = "하위권 ✏️ 오답 분석 및 개념 복습 추천";
+
+        document.getElementById('repGrade').innerText = gradeResult;
+        
+        generateEssayReport(correctCount, ratio);
+
+        document.getElementById('reportCardArea').style.display = 'block';
+        document.getElementById('reportCardArea').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function generateEssayReport(correct, ratio) {
+        let essayText = "";
+        
+        if (currentMode === 'naeshin') {
+            essayText = `[내신 기출 변형 분석 에세이]\n현재 본인의 정답률은 ${ratio.toFixed(1)}% 입니다. 학교 내신은 수능과 달리 출제자의 성향과 부교재 변형 비중이 매우 절대적입니다. 입력하셨던 기존 학교 기출 선지 총량을 기반으로 시뮬레이션한 결과, 내신 시험에서는 한 번 정해진 선지 빈도 매트릭스를 난수화하더라도 특정 패턴의 쏠림 현상이 유지되는 경향이 있습니다. 틀린 오답 문항의 경우 무작정 찍기보다는 학교 선생님의 누적 서술형/객관식 정답 코드를 바탕으로 취약점 보완 배치를 재점검하시길 권장합니다.`;
+            document.getElementById('essayContentArea').innerText = essayText;
+            return;
+        }
+
+        if (activeSubjectKey === 'korean') {
+            essayText = `[국어 영역 통계학적 찍맞 에세이 - "9개의 균등 분배 원칙"]\n` +
+            `이번 시뮬레이션 채점 결과, 당신은 국어 45문항 중 ${correct}문항을 맞췄으며 정답률은 ${ratio.toFixed(1)}% 입니다.\n\n` +
+            `대입 수능 평가원 국어 영역의 정답 배치는 번호당 평균 9개(최소 7개~최대 10개)로 완벽한 밸런스를 지향합니다. 시험 종료 10분 전, 독서(비문학) 마지막 지문을 통째로 찍어야 하는 비상 상황이라면 본인이 확실하게 푼 문항들의 번호 개수를 신속하게 파악해야 합니다. 만약 특정 번호가 이미 11개 이상 마킹되어 있다면 그것은 본인이 푼 문제 중 오답이 섞여 있다는 강한 신호입니다.\n\n` +
+            `이때는 통계적으로 가장 빈출되는 중간 번호(②, ③, ④) 중 개수가 가장 부족한 번호 하나를 선택해 일렬로 밀어 찍는 것이 단일 문항을 무작위로 찍는 것보다 점수를 확보할 수 있는 통계학적 최고 우위 전략입니다.`;
+        } 
+        else if (activeSubjectKey === 'math') {
+            essayText = `[수학 영역 통계학적 찍맞 에세이 - "4-4-4-4-5의 법칙"]\n` +
+            `이번 시뮬레이션 채점 결과, 당신은 수학 30문항 중 객관식/주관식을 포함해 ${correct}문항을 맞췄으며 정답률은 ${ratio.toFixed(1)}% 입니다.\n\n` +
+            `평가원 수학 객관식 21문항(공통 1~15번, 미적분 선택 23~28번)은 예외 없이 [4, 4, 4, 4, 5]의 정답 선지 개수 구조를 가집니다. 특정 번호가 3개 이하이거나 6개 이상이 되는 형태는 사실상 무결점의 출제 오류 방지 매트릭스상 존재하지 않습니다.\n\n` +
+            `따라서 실전에서는 도저히 안 풀리는 최고난도 킬러 21번이나 28번을 찍어야 할 때, 이미 확실하게 맞은 19~20개 문항의 정답 개수를 확인하십시오. 카운팅 결과 3개밖에 나오지 않은 희귀 번호가 있다면, 그것이 바로 평가원이 숨겨놓은 킬러 문항의 정답 마스터 키입니다. 주관식의 경우 한 자릿수 정답 및 10~20대 숫자의 출제 비중이 높다는 통계도 함께 유념하십시오.`;
+        } 
+        else if (activeSubjectKey === 'english') {
+            essayText = `[영어 영역 통계학적 찍맞 에세이 - "유형별 저격 패턴의 법칙"]\n` +
+            `이번 시뮬레이션 채점 결과, 당신은 영어 45문항 중 ${correct}문항을 맞췄으며 정답률은 ${ratio.toFixed(1)}% 입니다.\n\n` +
+            `영어 영역은 수학과 달리 총 문항 수가 45개로 많고, 듣기(1~17번)와 독해(18~45번) 각 유형별로 평가원이 선호하는 특정 정답 배치 패턴이 매우 뚜렷하게 나타나는 과목입니다. 전체 선지 개수 총량은 완벽한 등배수(45 ÷ 5 = 9개씩)를 목표로 설계되어, 전개년 공통으로 [8개, 9개, 10개] 사이에서만 정답 수가 제어됩니다.\n\n` +
+            `특히 빈칸추론 핵심 구간인 31~34번 중, [32번] 문항은 기출 데이터상 예외 없이 2번 선지가 정답으로 압도적인 강세를 보였습니다. 또한 순서 배열 및 문장 삽입(35~39번) 유형은 전통적으로 후반부 번호대인 ③번, ④번, ⑤번의 전유물이며, 37번 글의 순서 문제는 ②번이 정답일 확률이 75%를 상회합니다. 시간이 부족할 때 유형별 빈출 위치를 저격하여 마킹하는 기술은 최후의 등급 방어선을 구축하는 핵심 열쇠가 될 것입니다.`;
+        }
+
+        document.getElementById('essayContentArea').innerText = essayText;
+    }
+
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[array[j]]] = [array[j], array[array[i]]];
+        }
+    }
+</script>
+</body>
+</html>
